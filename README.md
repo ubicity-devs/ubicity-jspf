@@ -13,3 +13,7 @@ JSPF is based upon Mr. Biedert's jcores project. Together with jcores, it forms 
 
 
 
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/ubicity-principal/ubicity-jspf/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
