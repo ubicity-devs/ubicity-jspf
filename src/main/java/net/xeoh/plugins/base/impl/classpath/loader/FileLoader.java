@@ -47,97 +47,107 @@ import net.xeoh.plugins.base.options.AddPluginsFromOption;
  */
 public class FileLoader extends AbstractLoader {
 
-    /**
-     * @param pluginManager
-     */
-    public FileLoader(PluginManagerImpl pluginManager) {
-        super(pluginManager);
-    }
+	/**
+	 * @param pluginManager
+	 */
+	public FileLoader(PluginManagerImpl pluginManager) {
+		super(pluginManager);
+	}
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see net.xeoh.plugins.base.impl.loader.AbstractLoader#handlesURI(java.net.URI)
-     */
-    @Override
-    public boolean handlesURI(URI uri) {
-        if (uri != null && "file".equals(uri.getScheme())) return true;
-        return false;
-    }
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * net.xeoh.plugins.base.impl.loader.AbstractLoader#handlesURI(java.net.URI)
+	 */
+	@Override
+	public boolean handlesURI(URI uri) {
+		if (uri != null && "file".equals(uri.getScheme()))
+			return true;
+		return false;
+	}
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see net.xeoh.plugins.base.impl.loader.AbstractLoader#loadFrom(java.net.URI)
-     */
-    @Override
-    public void loadFrom(URI url, AddPluginsFromOption[] options) {
-        // If not caught by the previous handler, handle files normally.
-        if (url.getScheme().equals("file")) {
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * net.xeoh.plugins.base.impl.loader.AbstractLoader#loadFrom(java.net.URI)
+	 */
+	@Override
+	public void loadFrom(URI url, AddPluginsFromOption[] options) {
+		// If not caught by the previous handler, handle files normally.
+		if (url.getScheme().equals("file")) {
 
-            // Get the actual file from the given path (TODO: Why don't we do new
-            // File(url)?)
-            String file = url.getPath();
+			// Get the actual file from the given path (TODO: Why don't we do
+			// new
+			// File(url)?)
+			String file = url.getPath();
 
-            // FIXME: Where does this trailing slash come from ?!
-            if (file.startsWith("/") && file.substring(0, 4).contains(":")) {
-                file = file.substring(1);
-            }
+			// FIXME: Where does this trailing slash come from ?!
+			if (file.startsWith("/") && file.substring(0, 4).contains(":")) {
+				file = file.substring(1);
+			}
 
-            // Try to decode the path properly
-            try {
-                file = URLDecoder.decode(file, "utf8");
-            } 
-            catch (final UnsupportedEncodingException e) {
-                logger.warning( "load from URI : UnsupportedEncodingException : " + e.toString()  );
-            }
+			// Try to decode the path properly
+			try {
+				file = URLDecoder.decode(file, "utf8");
+			} catch (final UnsupportedEncodingException e) {
+				logger.warning("load from URI : UnsupportedEncodingException : "
+						+ e.toString());
+			}
 
-            // Now load from the given file ...
-            this.logger.finest("More specifically, trying to add from " + file);
-            final File root = new File(file);
+			// Now load from the given file ...
+			this.logger.finest("More specifically, trying to add from " + file);
+			final File root = new File(file);
 
-            // ... if it exists ...
-            if (!root.exists()) {
-                this.logger.warning("Supplied path does not exist. Unable to add plugins from there.");
-                return;
-            }
+			// ... if it exists ...
+			if (!root.exists()) {
+				this.logger
+						.warning("Supplied path ('"
+								+ file
+								+ "') does not exist. Unable to add plugins from there.");
+				return;
+			}
 
-            // Here we go
-            locateAllPluginsAt(root);
-            return;
-        }
-    }
+			// Here we go
+			locateAllPluginsAt(root);
+			return;
+		}
+	}
 
-    /**
-     * Given a top level directory, we locate all classpath locations and load all plugins
-     * we find.
-     * 
-     * @param root The top level to start from.
-     */
-    void locateAllPluginsAt(File root) {
-        final ClassPathManager manager = this.pluginManager.getClassPathManager();
-        final ClassPathLocator locator = manager.getLocator();
+	/**
+	 * Given a top level directory, we locate all classpath locations and load
+	 * all plugins we find.
+	 * 
+	 * @param root
+	 *            The top level to start from.
+	 */
+	void locateAllPluginsAt(File root) {
+		final ClassPathManager manager = this.pluginManager
+				.getClassPathManager();
+		final ClassPathLocator locator = manager.getLocator();
 
-        final Collection<AbstractClassPathLocation> locations = locator.findBelow(root.toURI());
-        for (AbstractClassPathLocation location : locations) {
-            manager.registerLocation(location);
+		final Collection<AbstractClassPathLocation> locations = locator
+				.findBelow(root.toURI());
+		for (AbstractClassPathLocation location : locations) {
+			manager.registerLocation(location);
 
-            Collection<String> subclasses = null;
+			Collection<String> subclasses = null;
 
-            // Check if it has a list of plugins
-            if (location instanceof JARClasspathLocation) {
-                final JARClasspathLocation jarLocation = (JARClasspathLocation) location;
-                subclasses = jarLocation.getPredefinedPluginList();
-            }
+			// Check if it has a list of plugins
+			if (location instanceof JARClasspathLocation) {
+				final JARClasspathLocation jarLocation = (JARClasspathLocation) location;
+				subclasses = jarLocation.getPredefinedPluginList();
+			}
 
-            // Add all found files ... if we have no predefined list
-            if (subclasses == null)
-                subclasses = manager.findSubclassesFor(location, Plugin.class);
+			// Add all found files ... if we have no predefined list
+			if (subclasses == null)
+				subclasses = manager.findSubclassesFor(location, Plugin.class);
 
-            // Try to load them
-            for (String string : subclasses) {
-                tryToLoadClassAsPlugin(location, string);
-            }
-        }
-    }
+			// Try to load them
+			for (String string : subclasses) {
+				tryToLoadClassAsPlugin(location, string);
+			}
+		}
+	}
 }
