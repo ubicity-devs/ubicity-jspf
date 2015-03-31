@@ -57,207 +57,215 @@ import net.xeoh.plugins.diagnosis.local.util.DiagnosisChannelUtil;
  */
 public class ClassPathLocator {
 
-    /** Cache to lookup elements */
-    private final JARCache cache;
+	/** Cache to lookup elements */
+	private final JARCache cache;
 
-    /** Mainly used to access the config. */
-    private PluginManagerImpl pluginManager;
+	/** Mainly used to access the config. */
+	private final PluginManagerImpl pluginManager;
 
+	private final Logger logger;
 
-    private Logger logger;
-    /**
-     * @param pluginManager
-     * @param cache
-     */
-    public ClassPathLocator(PluginManagerImpl pluginManager, JARCache cache) {
-        this.pluginManager = pluginManager;
-        this.cache = cache;
-        logger = Logger.getLogger(this.getClass().getName() );
-    }
+	/**
+	 * @param pluginManager
+	 * @param cache
+	 */
+	public ClassPathLocator(PluginManagerImpl pluginManager, JARCache cache) {
+		this.pluginManager = pluginManager;
+		this.cache = cache;
+		logger = Logger.getLogger(this.getClass().getName());
+	}
 
-    /**
-     * Given a top level entry, finds a list of class path locations below the given
-     * entry. The top level entry can either be a folder, or it can be a JAR directly.
-     * 
-     * @param toplevel The top level URI to start from.
-     * @return A list of class path locations.
-     */
-    public Collection<AbstractClassPathLocation> findBelow(URI toplevel) {
+	/**
+	 * Given a top level entry, finds a list of class path locations below the given entry. The top level entry can either be a folder, or it can be a JAR
+	 * directly.
+	 * 
+	 * @param toplevel
+	 *            The top level URI to start from.
+	 * @return A list of class path locations.
+	 */
+	public Collection<AbstractClassPathLocation> findBelow(URI toplevel) {
 
-        final Collection<AbstractClassPathLocation> rval = new ArrayList<AbstractClassPathLocation>();
-        final File startPoint = new File(toplevel);
+		final Collection<AbstractClassPathLocation> rval = new ArrayList<AbstractClassPathLocation>();
+		final File startPoint = new File(toplevel);
 
-        // First, check if the entry represents a multi-plugin (in that case we don't add
-        // anything else)
-        if ($(startPoint).filter(".*\\.plugin?$").get(0) != null) {
-            rval.add(AbstractClassPathLocation.newClasspathLocation(this.cache, toplevel.toString(), toplevel));
-            return rval;
-        }
+		// First, check if the entry represents a multi-plugin (in that case we don't add
+		// anything else)
+		if ($(startPoint).filter(".*\\.plugin?$").get(0) != null) {
+			rval.add(AbstractClassPathLocation.newClasspathLocation(this.cache, toplevel.toString(), toplevel));
+			return rval;
+		}
 
-        // Check if this is a directory or a file
-        if (startPoint.isDirectory()) {
-            final File[] listFiles = startPoint.listFiles();
+		// Check if this is a directory or a file
+		if (startPoint.isDirectory()) {
+			final File[] listFiles = startPoint.listFiles();
 
-            boolean hasJARs = false;
+			boolean hasJARs = false;
 
-            for (File file : listFiles) {
-                if (file.getAbsolutePath().endsWith(".jar")) {
-                    rval.add(AbstractClassPathLocation.newClasspathLocation(this.cache, file.toURI().toString(), file.toURI()));
-                    hasJARs = true;
-                }
+			for (File file : listFiles) {
+				if (file.getAbsolutePath().endsWith(".jar")) {
+					rval.add(AbstractClassPathLocation.newClasspathLocation(this.cache, file.toURI().toString(), file.toURI()));
+					hasJARs = true;
+				}
 
-                if ($(file).filter(".*\\.plugin?$").get(0) != null) {
-                    rval.add(AbstractClassPathLocation.newClasspathLocation(this.cache, file.toURI().toString(), file.toURI()));
-                    hasJARs = true;
-                }
-            }
+				if ($(file).filter(".*\\.plugin?$").get(0) != null) {
+					rval.add(AbstractClassPathLocation.newClasspathLocation(this.cache, file.toURI().toString(), file.toURI()));
+					hasJARs = true;
+				}
+			}
 
-            // If we have JARs, we already added them
-            if (hasJARs) return rval;
+			// If we have JARs, we already added them
+			if (hasJARs)
+				return rval;
 
-            // If we have no JARs, this is probably a classpath, in this case warn that
-            // the method is not recommended
-            if (toplevel.toString().contains("/bin/") || toplevel.toString().contains("class")) {
-                System.err.println("Adding plugins in 'raw' classpaths, such as 'bin/' or 'classes/' is not recommended. Please use classpath://* instead (the video is a bit outdated in this respect).");
-            }
-            rval.add(AbstractClassPathLocation.newClasspathLocation(this.cache, toplevel.toString(), toplevel));
-            return rval;
-        }
+			// If we have no JARs, this is probably a classpath, in this case warn that
+			// the method is not recommended
+			if (toplevel.toString().contains("/bin/") || toplevel.toString().contains("class")) {
+				System.err
+						.println("Adding plugins in 'raw' classpaths, such as 'bin/' or 'classes/' is not recommended. Please use classpath://* instead (the video is a bit outdated in this respect).");
+			}
+			rval.add(AbstractClassPathLocation.newClasspathLocation(this.cache, toplevel.toString(), toplevel));
+			return rval;
+		}
 
-        // If this is directly a JAR, add this
-        if (startPoint.isFile() && startPoint.getAbsolutePath().endsWith(".jar")) {
-            rval.add(AbstractClassPathLocation.newClasspathLocation(this.cache, toplevel.toString(), toplevel));
-            return rval;
-        }
+		// If this is directly a JAR, add this
+		if (startPoint.isFile() && startPoint.getAbsolutePath().endsWith(".jar")) {
+			rval.add(AbstractClassPathLocation.newClasspathLocation(this.cache, toplevel.toString(), toplevel));
+			return rval;
+		}
 
-        return rval;
-    }
-    
-    
-    
-    /**
-     * Gets all contributing classpaths for a given class by traversing all parent-classloader. 
-     * 
-     * @since 1.1
-     * @param clazz The class to get all classloaders for.
-     * @return A list of all contributing classloaders.
-     */
-    protected List<String> allClasspathsFor(Class<?> clazz) {
-        final DiagnosisChannelUtil<String> channel = new DiagnosisChannelUtil<String>(this.pluginManager.getPlugin(Diagnosis.class).channel(SpawnerTracer.class));
-        final List<String> rval = $.list();
+		return rval;
+	}
 
-        channel.status("allclasspathsfor/start", "class", clazz.toString());
-        
-        // In case JSPF has been loaded from an URL class loader as well (Issue #29)
-        URLClassLoader ourloader = $(clazz.getClassLoader()).cast(URLClassLoader.class).get(0);
-        while (ourloader != null) { 
-            // Removed check for system classloader, might need its elements as well
-            channel.status("allclasspathsfor/urlloader");
-            rval.addAll($(ourloader.getURLs()).file().forEach(new F1<File, String>() {
-                @Override
-                public String f(File arg0) {
-                    channel.status("allclasspathsfor/urlloader/path", "path", arg0);
-                    return arg0.getAbsolutePath();
-                }
-            }).list());
-            ourloader = $(ourloader.getParent()).cast(URLClassLoader.class).get(0);
-        }
-        
-        channel.status("allclasspathsfor/end");
-        
-        return $(rval).unique().list();
-    }
-    
+	/**
+	 * Gets all contributing classpaths for a given class by traversing all parent-classloader.
+	 * 
+	 * @since 1.1
+	 * @param clazz
+	 *            The class to get all classloaders for.
+	 * @return A list of all contributing classloaders.
+	 */
+	protected List<String> allClasspathsFor(Class<?> clazz) {
+		final DiagnosisChannelUtil<String> channel = new DiagnosisChannelUtil<String>(this.pluginManager.getPlugin(Diagnosis.class)
+				.channel(SpawnerTracer.class));
+		final List<String> rval = $.list();
 
-    /**
-     * Finds all locations inside the current classpath.
-     * @param options 
-     * 
-     * @return A list of all locations in the current classpath.
-     */
-    @SuppressWarnings("boxing")
-    public Collection<AbstractClassPathLocation> findInCurrentClassPath(AddPluginsFromOption[] options) {
-        final DiagnosisChannelUtil<String> channel = new DiagnosisChannelUtil<String>(this.pluginManager.getPlugin(Diagnosis.class).channel(SpawnerTracer.class));
-        
-        channel.status("findinclasspath/start");
-        final Collection<AbstractClassPathLocation> rval = new ArrayList<AbstractClassPathLocation>();
+		channel.status("allclasspathsfor/start", "class", clazz.toString());
 
-        // Get our current classpath (TODO: Better get this using
-        // ClassLoader.getSystemClassLoader()?)
-        final boolean filter = new PluginConfigurationUtil(this.pluginManager.getPluginConfiguration()).getBoolean(PluginManager.class, "classpath.filter.default.enabled", true);
-        final String blacklist[] = new PluginConfigurationUtil(this.pluginManager.getPluginConfiguration()).getString(PluginManager.class, "classpath.filter.default.pattern", "/jre/lib/;/jdk/lib/;/lib/rt.jar").split(";");
-        final String pathSep = System.getProperty("path.separator");
-        final String classpath = System.getProperty("java.class.path");
-        final List<URL> toFilter = new ArrayList<URL>();
+		// In case JSPF has been loaded from an URL class loader as well (Issue #29)
+		URLClassLoader ourloader = $(clazz.getClassLoader()).cast(URLClassLoader.class).get(0);
+		while (ourloader != null) {
+			// Removed check for system classloader, might need its elements as well
+			channel.status("allclasspathsfor/urlloader", null);
+			rval.addAll($(ourloader.getURLs()).file().forEach(new F1<File, String>() {
+				@Override
+				public String f(File arg0) {
+					channel.status("allclasspathsfor/urlloader/path", "path", arg0);
+					return arg0.getAbsolutePath();
+				}
+			}).list());
+			ourloader = $(ourloader.getParent()).cast(URLClassLoader.class).get(0);
+		}
 
-        // Get the starting point
-        final Class<?> startPoint = $(options).get(OptionSearchAround.class, new OptionSearchAround(getClass())).getClazz();
-        
-        // Get all classpaths
-        List<String> classpaths = $(classpath.split(pathSep)).list();
-        classpaths.addAll(allClasspathsFor(startPoint));
-        classpaths = $(classpaths).unique().list();
+		channel.status("allclasspathsfor/end", null);
 
-        // Check if we should filter, if yes, get topmost classloader so we know
-        // what to filter out
-        if (filter) {
-            channel.status("findinclasspath/filter");
+		return $(rval).unique().list();
+	}
 
-            ClassLoader loader = ClassLoader.getSystemClassLoader();
-            while (loader != null && loader.getParent() != null)
-                loader = loader.getParent();
+	/**
+	 * Finds all locations inside the current classpath.
+	 * 
+	 * @param options
+	 * 
+	 * @return A list of all locations in the current classpath.
+	 */
+	@SuppressWarnings("boxing")
+	public Collection<AbstractClassPathLocation> findInCurrentClassPath(AddPluginsFromOption[] options) {
+		final DiagnosisChannelUtil<String> channel = new DiagnosisChannelUtil<String>(this.pluginManager.getPlugin(Diagnosis.class)
+				.channel(SpawnerTracer.class));
 
-            // Get 'blacklist' and add it to our filterlist
-            if (loader != null && loader instanceof URLClassLoader) {
-                URL[] urls = ((URLClassLoader) loader).getURLs();
-                for (URL url : urls) {
-                    channel.status("findinclasspath/filter/add", "item", url);
-                    toFilter.add(url);
-                }
-            }
-        }
+		channel.status("findinclasspath/start", null);
+		final Collection<AbstractClassPathLocation> rval = new ArrayList<AbstractClassPathLocation>();
 
-        // Process all possible locations
-        for (String string : classpaths) {
-            if(string == null) continue;
-            
-            try {
-                final URL url = new File(string).toURI().toURL();
-                
-                channel.status("findinclasspath/add", "raw", string, "url", url);
+		// Get our current classpath (TODO: Better get this using
+		// ClassLoader.getSystemClassLoader()?)
+		final boolean filter = new PluginConfigurationUtil(this.pluginManager.getPluginConfiguration()).getBoolean(PluginManager.class,
+				"classpath.filter.default.enabled", true);
+		final String blacklist[] = new PluginConfigurationUtil(this.pluginManager.getPluginConfiguration()).getString(PluginManager.class,
+				"classpath.filter.default.pattern", "/jre/lib/;/jdk/lib/;/lib/rt.jar").split(";");
+		final String pathSep = System.getProperty("path.separator");
+		final String classpath = System.getProperty("java.class.path");
+		final List<URL> toFilter = new ArrayList<URL>();
 
-                // Check if the url was already contained
-                if (toFilter.contains(url) || blacklisted(blacklist, url)) {
-                    channel.status("findinclasspath/add/blacklisted", "raw", string, "url", url);
-                    continue;
-                }
+		// Get the starting point
+		final Class<?> startPoint = $(options).get(OptionSearchAround.class, new OptionSearchAround(getClass())).getClazz();
 
-                // And eventually add the location
-                rval.add(AbstractClassPathLocation.newClasspathLocation(this.cache, "#classpath", new File(string).toURI()));
-            } catch (MalformedURLException e) {
-                logger.severe( "find in current classpath: caught a MalformedURLException :" + e.toString() );
-            }
-        }
-        return rval;
-    }
+		// Get all classpaths
+		List<String> classpaths = $(classpath.split(pathSep)).list();
+		classpaths.addAll(allClasspathsFor(startPoint));
+		classpaths = $(classpaths).unique().list();
 
-    /**
-     * Checks if the given URL is blacklisted
-     * 
-     * @param blacklist
-     * @param url
-     * @return
-     */
-    private boolean blacklisted(String[] blacklist, URL url) {
-        // Default sanity check
-        if (blacklist == null || blacklist.length == 0 || blacklist[0].length() == 0)
-            return false;
+		// Check if we should filter, if yes, get topmost classloader so we know
+		// what to filter out
+		if (filter) {
+			channel.status("findinclasspath/filter", null);
 
-        // Go thorugh blacklist
-        for (String string : blacklist) {
-            if (url.toString().contains(string)) return true;
-        }
+			ClassLoader loader = ClassLoader.getSystemClassLoader();
+			while (loader != null && loader.getParent() != null)
+				loader = loader.getParent();
 
-        return false;
-    }
+			// Get 'blacklist' and add it to our filterlist
+			if (loader != null && loader instanceof URLClassLoader) {
+				URL[] urls = ((URLClassLoader) loader).getURLs();
+				for (URL url : urls) {
+					channel.status("findinclasspath/filter/add", "item", url);
+					toFilter.add(url);
+				}
+			}
+		}
+
+		// Process all possible locations
+		for (String string : classpaths) {
+			if (string == null)
+				continue;
+
+			try {
+				final URL url = new File(string).toURI().toURL();
+
+				channel.status("findinclasspath/add", "raw", string, "url", url);
+
+				// Check if the url was already contained
+				if (toFilter.contains(url) || blacklisted(blacklist, url)) {
+					channel.status("findinclasspath/add/blacklisted", "raw", string, "url", url);
+					continue;
+				}
+
+				// And eventually add the location
+				rval.add(AbstractClassPathLocation.newClasspathLocation(this.cache, "#classpath", new File(string).toURI()));
+			} catch (MalformedURLException e) {
+				logger.severe("find in current classpath: caught a MalformedURLException :" + e.toString());
+			}
+		}
+		return rval;
+	}
+
+	/**
+	 * Checks if the given URL is blacklisted
+	 * 
+	 * @param blacklist
+	 * @param url
+	 * @return
+	 */
+	private boolean blacklisted(String[] blacklist, URL url) {
+		// Default sanity check
+		if (blacklist == null || blacklist.length == 0 || blacklist[0].length() == 0)
+			return false;
+
+		// Go thorugh blacklist
+		for (String string : blacklist) {
+			if (url.toString().contains(string))
+				return true;
+		}
+
+		return false;
+	}
 }
